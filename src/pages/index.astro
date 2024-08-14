@@ -1,0 +1,39 @@
+---
+// src/pages/index.astro
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Welcome">
+  <div class="home-content">
+    <h1>Welcome to our Shopping Cart App</h1>
+    <p>Browse our products and add them to your cart!</p>
+    <a href="/products" class="cta-button">View Products</a>
+  </div>
+</Layout>
+
+<style>
+  .home-content {
+    text-align: center;
+    padding: 2rem;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+  }
+
+  .cta-button {
+    display: inline-block;
+    background-color: #010006;
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 1.1rem;
+  }
+</style>

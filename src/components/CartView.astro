@@ -1,0 +1,175 @@
+---
+// src/components/CartView.astro
+import { CartController } from '../../app/CartController';
+import { CartService } from '../../domain/cart/CartService';
+import { FakeStoreCartRepository } from '../../infra/repos/FakeStoreCartRepository';
+import { ProductController } from '../../app/ProductController';
+import { ProductService } from '../../domain/product/ProductService';
+import { FakeStoreProductRepository } from '../../infra/repos/FakeStoreProductRepository';
+
+const cartRepository = new FakeStoreCartRepository();
+const cartService = new CartService(cartRepository);
+const cartController = new CartController(cartService);
+
+const productRepository = new FakeStoreProductRepository();
+const productService = new ProductService(productRepository);
+const productController = new ProductController(productService);
+
+// For this example, we'll use a hardcoded cart ID. In a real application, you'd get this from the user's session.
+const cartId = 1;
+const cart = await cartController.getCartById(cartId);
+
+// Fetch product details for each item in the cart
+const cartItemsWithDetails = await Promise.all(
+  cart.products.map(async (item) => {
+    const product = await productController.getProductById(item.id);
+    return { ...item, product };
+  })
+);
+
+const total = cartItemsWithDetails.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+---
+
+<div class="cart-view">
+  <h2>Your Cart</h2>
+  {cartItemsWithDetails.length === 0 ? (
+    <p>Your cart is empty.</p>
+  ) : (
+    <>
+      <ul>
+        {cartItemsWithDetails.map((item) => (
+          <li>
+            <img src={item.product.images[0]} alt={item.product.title} width="50" height="50" />
+            <span>{item.product.title}</span>
+            <span>Quantity: {item.quantity}</span>
+            <span>Price: ${(item.product.price * item.quantity).toFixed(2)}</span>
+            <button class="remove-item" data-product-id={item.id}>Remove</button>
+          </li>
+        ))}
+      </ul>
+      <div class="cart-total">
+        <strong>Total: ${total.toFixed(2)}</strong>
+      </div>
+      <button id="clear-cart" class="clear-cart">Clear Cart</button>
+    </>
+  )}
+</div>
+
+<style>
+  .cart-view {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  ul {
+    list-style-type: none;
+    padding: 0;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #ddd;
+    padding: 10px 0;
+    background-color: #e8e6e6;
+    border-radius: 10px;
+    margin-bottom: 0.5em;
+  }
+
+  img {
+    object-fit: contain;
+  }
+
+  .cart-total {
+    margin-top: 20px;
+    text-align: right;
+  }
+
+  .clear-cart {
+    display: block;
+    margin: 20px 0 0 auto;
+    padding: 10px 20px;
+    background-color: #be3b32;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 10px;
+  }
+
+  .remove-item {
+    background-color: #be3b32;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 10px;
+  }
+</style>
+
+<script>
+  const baseUrl = 'https://dummyjson.com/carts';
+  const cartId = 1; // Assuming we're working with cart ID 1
+
+  function removeFromCart(productId: any) {
+    fetch(`${baseUrl}/${cartId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        merge: true,
+        products: [
+          {
+            id: parseInt(productId),
+            quantity: 0, // Set quantity to 0 to remove the item
+          },
+        ]
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      // Update cart count
+      const newCount = data.totalQuantity;
+      (window as any).updateCartCount(newCount);
+      
+      // Refresh the cart view
+      location.reload();
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred while removing the item from cart.');
+    });
+  }
+
+  function clearCart() {
+    fetch(`${baseUrl}/${cartId}`, {
+      method: 'DELETE',
+    })
+    .then(response => response.json())
+    .then(data => {
+      // Update cart count
+      (window as any).updateCartCount(0);
+      
+      // Refresh the cart view
+      location.reload();
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred while clearing the cart.');
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const removeButtons = document.querySelectorAll('.remove-item');
+    removeButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const productId = button.getAttribute('data-product-id');
+        removeFromCart(productId);
+      });
+    });
+
+    const clearCartButton = document.getElementById('clear-cart');
+    if (clearCartButton) {
+      clearCartButton.addEventListener('click', clearCart);
+    }
+  });
+</script>

@@ -1,0 +1,100 @@
+---
+// src/layouts/Layout.astro
+const { title } = Astro.props;
+
+import { CartController } from '../../app/CartController';
+import { CartService } from '../../domain/cart/CartService';
+import { FakeStoreCartRepository } from '../../infra/repos/FakeStoreCartRepository';
+
+const cartRepository = new FakeStoreCartRepository();
+const cartService = new CartService(cartRepository);
+const cartController = new CartController(cartService);
+
+const cartId = 1; // Hardcoded for simplicity
+const cart = await cartController.getCartById(cartId);
+const itemCount = cart.products.reduce((total: any, item: { quantity: any; }) => total + item.quantity, 0);
+---
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} - Shopping Cart App</title>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/products">Products</a></li>
+          <li><a href="/cart">Cart (<span id="cart-count">{itemCount}</span>)</a></li>
+        </ul>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer>
+      <p>&copy; 2024 Shopping Cart App</p>
+    </footer>
+  </body>
+</html>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #edecf0;
+  }
+
+  header {
+    background-color: #010006;
+    color: #fff;
+    padding: 1rem;
+  }
+
+  nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  nav ul li {
+    display: inline;
+    margin-right: 10px;
+  }
+
+  nav ul li a {
+    color: #fff;
+    text-decoration: none;
+  }
+
+  main {
+    flex: 1;
+    padding: 2rem;
+  }
+
+  footer {
+    background-color: #010006;
+    color: #fff;
+    text-align: center;
+    padding: 1rem;
+  }
+</style>
+
+<script>
+    function updateCartCount(count: number) {
+      const cartCountElement = document.getElementById('cart-count');
+      if (cartCountElement) {
+        cartCountElement.textContent = count.toString();
+      }
+    }
+  
+    // Make updateCartCount function available globally
+    (window as any).updateCartCount = updateCartCount;
+  </script>

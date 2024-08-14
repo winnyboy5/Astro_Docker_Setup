@@ -1,0 +1,73 @@
+---
+// src/pages/products.astro
+import Layout from '../layouts/Layout.astro';
+import ProductList from '../components/ProductList.astro';
+
+---
+
+<Layout title="Products">
+  <h1>Our Products</h1>
+  <div id="message" class="message"></div>
+  <ProductList />
+</Layout>
+
+<style>
+  .message {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    display: none;
+  }
+</style>
+
+<script>
+  import type { Product } from '../../domain/product/Product';
+
+  let messageTimeout: any;
+
+  function showMessage(text: string | null) {
+    const messageElement = document.getElementById('message');
+    if(messageElement){
+      messageElement.textContent = text;
+      messageElement.style.display = 'block';
+
+      clearTimeout(messageTimeout);
+      messageTimeout = setTimeout(() => {
+        messageElement.style.display = 'none';
+      }, 3000);
+    }
+    
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const baseurl = 'https://dummyjson.com';
+    const addToCartButtons = document.querySelectorAll('.add-to-cart');
+    addToCartButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const productId = button.getAttribute('data-product-id');
+        fetch(`${baseurl}/cart/add`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: 1 , products: [{id: productId, quantity: 1 }]}),
+        })
+        .then(response => response.json())
+        .then(data => {
+          const isProduct = data.products.find((product: Product) => product.id.toString() === productId)  
+          if (isProduct) {
+            showMessage('Product added to cart!');
+          } else {
+            showMessage('Failed to add product to cart.');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showMessage('An error occurred while adding the product to cart.');
+        });
+      });
+    });
+  });
+</script>

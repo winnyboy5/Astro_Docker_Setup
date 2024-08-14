@@ -1,0 +1,99 @@
+---
+// src/components/ProductList.astro
+import { ProductController } from '../../app/ProductController';
+import { ProductService } from '../../domain/product/ProductService';
+import { FakeStoreProductRepository } from '../../infra/repos/FakeStoreProductRepository';
+
+const productRepository = new FakeStoreProductRepository();
+const productService = new ProductService(productRepository);
+const productController = new ProductController(productService);
+
+const products = await productController.getAllProducts();
+---
+
+<div class="product-list">
+  {products.products.map((product) => (
+    <div class="product-item">
+      <img src={product.images[0]} alt={product.title} />
+      <h3>{product.title}</h3>
+      <p>${product.price}</p>
+      <button class="add-to-cart" data-product-id={product.id}>Add to Cart</button>
+    </div>
+  ))}
+</div>
+
+<style>
+  .product-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  .product-item {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+    background-color: #e8e6e6;
+    display: flex;
+    flex-direction: column;
+    justify-content:space-around;
+    border-radius: 10px;
+  }
+
+  .product-item img {
+    max-width: 100%;
+    height: 200px;
+    object-fit: contain;
+  }
+
+  .add-to-cart {
+    background-color: #f5b432;
+    border: none;
+    padding: 5px;
+    border-radius: 10px;
+  }
+</style>
+
+<script>
+import type { Product } from "domain/product/Product";
+
+   const baseurl = 'https://dummyjson.com/carts';
+  function addToCart(productId: string | null) {
+    fetch(`${baseurl}/add`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId: 1 , products: [{id: productId, quantity: 1 }]}),
+    })
+    .then(response => response.json())
+    .then(data => {
+      const isProduct = data.products.find((product: Product) => product.id.toString() === productId)  
+
+      if (isProduct) {
+        alert('Product added to cart!');
+        // Update cart count
+        const newCount = data.products.reduce((total: any, item: { quantity: any; }) => total + item.quantity, 0);
+        (window as any).updateCartCount(newCount);
+      } else {
+        alert('Failed to add product to cart.');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred while adding the product to cart.');
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const addToCartButtons = document.querySelectorAll('.add-to-cart');
+    addToCartButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const productId = button.getAttribute('data-product-id');
+        addToCart(productId);
+      });
+    });
+  });
+
+  
+</script>
